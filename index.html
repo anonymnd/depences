@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Depences Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <h1>Depences Tracker</h1>
+    <div class="layout">
+      <div class="chat">
+        <div id="chat-log" class="chat-log"></div>
+        <div class="chat-input">
+          <input id="chat-text" type="text" placeholder="Describe your spending, e.g., 'Today I spent 20 dirham buying groceries'">
+          <button id="send-btn">Send</button>
+        </div>
+      </div>
+      <div class="table-area">
+        <div class="toolbar">
+          <button id="clear-btn">Clear All</button>
+        </div>
+        <table id="expenses-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Amount (DH)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2">Total</td>
+              <td id="grand-total">DH 0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div id="category-totals" class="category-totals"></div>
+        <div class="toolbar">
+          <strong>Planned (Future)</strong>
+          <button id="clear-planned-btn" style="margin-left:auto">Clear Planned</button>
+        </div>
+        <table id="planned-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Amount (DH)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2">Planned Total</td>
+              <td id="planned-total">DH 0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+<style>
+</style>
+</html>
