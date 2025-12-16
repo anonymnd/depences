@@ -63,6 +63,8 @@ function extractCategory(s) {
   if (c) return cleanCategory(c[1])
   const d = s.match(/\bon\s+([a-z \-]+)/i)
   if (d) return cleanCategory(d[1])
+  const di = s.match(/\bin\s+([a-z \-]+)/i)
+  if (di) return cleanCategory(di[1])
   const e = s.match(/\bfor\s+([a-z \-]+)/i)
   if (e) return cleanCategory(e[1])
   const f = s.match(/\busing\s+([a-z \-]+)/i)
@@ -83,7 +85,8 @@ function extractCategory(s) {
     electricity: ['electricity','power'],
     water: ['water'],
     phone: ['phone','balance','airtime','credit'],
-    restaurant: ['restaurant','dinner','lunch','meal','breakfast']
+    restaurant: ['restaurant','dinner','lunch','meal','breakfast'],
+    eggs: ['eggs','egg']
   }
   const lower = s.toLowerCase()
   for (const k of Object.keys(mapping)) {
