@@ -1,7 +1,8 @@
 const state = {
   expenses: [],
   planned: [],
-  initialized: false
+  initialized: false,
+  editing: null
 }
 function money(v) {
   return `DH ${Number(v).toFixed(2)}`
@@ -171,19 +172,63 @@ function load() {
 function renderTable() {
   const tbody = document.querySelector('#expenses-table tbody')
   tbody.innerHTML = ''
-  for (const e of state.expenses) {
+  state.expenses.forEach((e, idx) => {
     const tr = document.createElement('tr')
-    const tdDate = document.createElement('td')
-    tdDate.textContent = e.date
-    const tdCat = document.createElement('td')
-    tdCat.textContent = e.category
-    const tdAmt = document.createElement('td')
-    tdAmt.textContent = money(e.amount)
-    tr.appendChild(tdDate)
-    tr.appendChild(tdCat)
-    tr.appendChild(tdAmt)
+    if (state.editing && state.editing.type==='expenses' && state.editing.idx===idx) {
+      const tdDate = document.createElement('td')
+      const inpDate = document.createElement('input')
+      inpDate.type = 'date'
+      inpDate.value = e.date
+      tdDate.appendChild(inpDate)
+      const tdCat = document.createElement('td')
+      const inpCat = document.createElement('input')
+      inpCat.type = 'text'
+      inpCat.value = e.category
+      tdCat.appendChild(inpCat)
+      const tdAmt = document.createElement('td')
+      const inpAmt = document.createElement('input')
+      inpAmt.type = 'number'
+      inpAmt.step = '0.01'
+      inpAmt.value = e.amount
+      tdAmt.appendChild(inpAmt)
+      const tdAct = document.createElement('td')
+      const save = document.createElement('button')
+      save.textContent = 'Save'
+      save.addEventListener('click', ()=> saveEdit('expenses', idx, {date: inpDate.value, category: inpCat.value, amount: parseFloat(inpAmt.value)}))
+      const cancel = document.createElement('button')
+      cancel.textContent = 'Cancel'
+      cancel.style.marginLeft = '6px'
+      cancel.addEventListener('click', cancelEdit)
+      tdAct.appendChild(save)
+      tdAct.appendChild(cancel)
+      tr.appendChild(tdDate)
+      tr.appendChild(tdCat)
+      tr.appendChild(tdAmt)
+      tr.appendChild(tdAct)
+    } else {
+      const tdDate = document.createElement('td')
+      tdDate.textContent = e.date
+      const tdCat = document.createElement('td')
+      tdCat.textContent = e.category
+      const tdAmt = document.createElement('td')
+      tdAmt.textContent = money(e.amount)
+      const tdAct = document.createElement('td')
+      const edit = document.createElement('button')
+      edit.textContent = 'Edit'
+      edit.addEventListener('click', ()=> startEdit('expenses', idx))
+      const del = document.createElement('button')
+      del.textContent = 'Delete'
+      del.style.marginLeft = '6px'
+      del.addEventListener('click', ()=> deleteItem('expenses', idx))
+      tdAct.appendChild(edit)
+      tdAct.appendChild(del)
+      tr.appendChild(tdDate)
+      tr.appendChild(tdCat)
+      tr.appendChild(tdAmt)
+      tr.appendChild(tdAct)
+    }
     tbody.appendChild(tr)
-  }
+  })
   const grand = state.expenses.reduce((a,b)=>a+b.amount,0)
   document.getElementById('grand-total').textContent = money(grand)
   const totals = {}
@@ -205,22 +250,94 @@ function renderTable() {
   })
   const pbody = document.querySelector('#planned-table tbody')
   pbody.innerHTML = ''
-  for (const e of state.planned) {
+  state.planned.forEach((e, idx) => {
     const tr = document.createElement('tr')
-    const tdDate = document.createElement('td')
-    tdDate.textContent = e.date
-    const tdCat = document.createElement('td')
-    tdCat.textContent = e.category
-    const tdAmt = document.createElement('td')
-    tdAmt.textContent = money(e.amount)
-    tr.appendChild(tdDate)
-    tr.appendChild(tdCat)
-    tr.appendChild(tdAmt)
+    if (state.editing && state.editing.type==='planned' && state.editing.idx===idx) {
+      const tdDate = document.createElement('td')
+      const inpDate = document.createElement('input')
+      inpDate.type = 'date'
+      inpDate.value = e.date
+      tdDate.appendChild(inpDate)
+      const tdCat = document.createElement('td')
+      const inpCat = document.createElement('input')
+      inpCat.type = 'text'
+      inpCat.value = e.category
+      tdCat.appendChild(inpCat)
+      const tdAmt = document.createElement('td')
+      const inpAmt = document.createElement('input')
+      inpAmt.type = 'number'
+      inpAmt.step = '0.01'
+      inpAmt.value = e.amount
+      tdAmt.appendChild(inpAmt)
+      const tdAct = document.createElement('td')
+      const save = document.createElement('button')
+      save.textContent = 'Save'
+      save.addEventListener('click', ()=> saveEdit('planned', idx, {date: inpDate.value, category: inpCat.value, amount: parseFloat(inpAmt.value)}))
+      const cancel = document.createElement('button')
+      cancel.textContent = 'Cancel'
+      cancel.style.marginLeft = '6px'
+      cancel.addEventListener('click', cancelEdit)
+      tdAct.appendChild(save)
+      tdAct.appendChild(cancel)
+      tr.appendChild(tdDate)
+      tr.appendChild(tdCat)
+      tr.appendChild(tdAmt)
+      tr.appendChild(tdAct)
+    } else {
+      const tdDate = document.createElement('td')
+      tdDate.textContent = e.date
+      const tdCat = document.createElement('td')
+      tdCat.textContent = e.category
+      const tdAmt = document.createElement('td')
+      tdAmt.textContent = money(e.amount)
+      const tdAct = document.createElement('td')
+      const edit = document.createElement('button')
+      edit.textContent = 'Edit'
+      edit.addEventListener('click', ()=> startEdit('planned', idx))
+      const del = document.createElement('button')
+      del.textContent = 'Delete'
+      del.style.marginLeft = '6px'
+      del.addEventListener('click', ()=> deleteItem('planned', idx))
+      tdAct.appendChild(edit)
+      tdAct.appendChild(del)
+      tr.appendChild(tdDate)
+      tr.appendChild(tdCat)
+      tr.appendChild(tdAmt)
+      tr.appendChild(tdAct)
+    }
     pbody.appendChild(tr)
-  }
+  })
   const pgrand = state.planned.reduce((a,b)=>a+b.amount,0)
   const pt = document.getElementById('planned-total')
   if (pt) pt.textContent = money(pgrand)
+}
+function startEdit(type, idx) {
+  state.editing = {type, idx}
+  renderTable()
+}
+function cancelEdit() {
+  state.editing = null
+  renderTable()
+}
+function saveEdit(type, idx, payload) {
+  const arr = type==='expenses' ? state.expenses : state.planned
+  const next = {...arr[idx]}
+  if (payload.date) next.date = payload.date
+  if (payload.category) next.category = payload.category
+  if (!isNaN(payload.amount)) next.amount = payload.amount
+  arr[idx] = next
+  state.editing = null
+  persist()
+  renderTable()
+  pushMsg('Row updated.', 'bot')
+}
+function deleteItem(type, idx) {
+  const arr = type==='expenses' ? state.expenses : state.planned
+  arr.splice(idx,1)
+  state.editing = null
+  persist()
+  renderTable()
+  pushMsg('Row deleted.', 'bot')
 }
 function pushMsg(text, who) {
   const n = document.createElement('div')
