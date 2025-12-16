@@ -41,9 +41,18 @@ function normalizeCurrency(s) {
   return s.replace(/\$/g,' dirham ')
 }
 function extractAmount(s) {
-  const m = s.match(/(\d+(?:\.\d+)?)\s*(?:usd|dollar|dollars|dirham|dh|mad|aed|درهم)\b/i)
-  if (!m) return null
-  return parseFloat(m[1])
+  const m1 = s.match(/(\d+(?:\.\d+)?)\s*(?:usd|dollar|dollars|dirham|dh|mad|aed|درهم|د\.?م\.?)\b/i)
+  if (m1) return parseFloat(m1[1])
+  const m2 = s.match(/\b(?:usd|dollar|dollars|dirham|dh|mad|aed|درهم|د\.?م\.?)\s*(\d+(?:\.\d+)?)\b/i)
+  if (m2) return parseFloat(m2[1])
+  const hasVerb = /\b(spent|pay|paid|cost|price|using|use)\b/i.test(s)
+  if (hasVerb) {
+    const dates = [...s.matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)].map(m=>m[0])
+    const nums = [...s.matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m=>m[0])
+    const filtered = nums.filter(n=>!dates.some(d=>d.includes(n)))
+    if (filtered.length) return parseFloat(filtered[0])
+  }
+  return null
 }
 function cleanCategory(x) {
   let s = (x || '').trim()
@@ -65,6 +74,10 @@ function extractCategory(s) {
   if (d) return cleanCategory(d[1])
   const di = s.match(/\bin\s+([a-z \-]+)/i)
   if (di) return cleanCategory(di[1])
+  const da = s.match(/\bat\s+([a-z \-]+)/i)
+  if (da) return cleanCategory(da[1])
+  const dt = s.match(/\bto\s+([a-z \-]+)/i)
+  if (dt) return cleanCategory(dt[1])
   const e = s.match(/\bfor\s+([a-z \-]+)/i)
   if (e) return cleanCategory(e[1])
   const f = s.match(/\busing\s+([a-z \-]+)/i)
@@ -73,6 +86,8 @@ function extractCategory(s) {
   if (g) return cleanCategory(g[1])
   const h = s.match(/\bspent\s+(?:\d+(?:\.\d+)?)\s*(?:usd|dollar|dollars|dirham|dh|mad|aed)\s+on\s+([a-z \-]+)/i)
   if (h) return cleanCategory(h[1])
+  const pre = s.match(/\b([a-z \-]+)\s+(?:cost|price|worth)\s+\d/i)
+  if (pre) return cleanCategory(pre[1])
   const mapping = {
     groceries: ['groceries','grocery','supermarket','market','food'],
     salt: ['salt'],
