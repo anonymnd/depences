@@ -20,6 +20,23 @@ function yesterdayISO() {
 function parseChunks(text) {
   return text.split(/[,;]| and | or /i).map(s=>s.trim()).filter(Boolean)
 }
+function normalizeTypos(s) {
+  return s
+    .replace(/\bbusyging\b/g, 'buying')
+    .replace(/\bbuygin\b/g, 'buying')
+    .replace(/\bbuing\b/g, 'buying')
+    .replace(/\bgorsheries\b/g, 'groceries')
+    .replace(/\bgorceries\b/g, 'groceries')
+    .replace(/\bgrocceries\b/g, 'groceries')
+    .replace(/\bcoffe\b/g, 'coffee')
+    .replace(/\bsnaks\b/g, 'snacks')
+    .replace(/\btaxy\b/g, 'taxi')
+    .replace(/\binernet\b/g, 'internet')
+    .replace(/\bslat\b/g, 'salt')
+}
+function normalizeText(s) {
+  return normalizeCurrency(normalizeTypos(s.toLowerCase()))
+}
 function normalizeCurrency(s) {
   return s.replace(/\$/g,' dirham ')
 }
@@ -28,17 +45,57 @@ function extractAmount(s) {
   if (!m) return null
   return parseFloat(m[1])
 }
+function cleanCategory(x) {
+  let s = (x || '').trim()
+  s = s.replace(/^(the|a|my)\s+/i, '')
+  s = s.replace(/\s+(to|at|in|with|for|on)\b.*$/i, '')
+  s = s.replace(/[^a-z \-]/gi, '')
+  const parts = s.split(/\s+/).filter(Boolean)
+  if (parts.length > 2) s = parts.slice(0,2).join(' ')
+  return s || 'uncategorized'
+}
 function extractCategory(s) {
   const a = s.match(/\bbuy(?:ing)?\s+([a-z \-]+)/i)
-  if (a) return a[1].trim().replace(/\s{2,}/g,' ')
-  const b = s.match(/\bon\s+([a-z \-]+)/i)
-  if (b) return b[1].trim().replace(/\s{2,}/g,' ')
-  const c = s.match(/\bfor\s+([a-z \-]+)/i)
-  if (c) return c[1].trim().replace(/\s{2,}/g,' ')
-  const d = s.match(/\busing\s+([a-z \-]+)/i)
-  if (d) return d[1].trim().replace(/\s{2,}/g,' ')
-  const e = s.match(/\bspent\s+(?:\d+(?:\.\d+)?)\s*(?:usd|dollar|dollars|dirham|dh|mad|aed)\s+on\s+([a-z \-]+)/i)
-  if (e) return e[1].trim()
+  if (a) return cleanCategory(a[1])
+  const b = s.match(/\bbought\s+([a-z \-]+)/i)
+  if (b) return cleanCategory(b[1])
+  const c = s.match(/\bpurchas(?:e|ing)\s+([a-z \-]+)/i)
+  if (c) return cleanCategory(c[1])
+  const d = s.match(/\bon\s+([a-z \-]+)/i)
+  if (d) return cleanCategory(d[1])
+  const e = s.match(/\bfor\s+([a-z \-]+)/i)
+  if (e) return cleanCategory(e[1])
+  const f = s.match(/\busing\s+([a-z \-]+)/i)
+  if (f) return cleanCategory(f[1])
+  const g = s.match(/\bpaid\s+(?:for\s+)?([a-z \-]+)/i)
+  if (g) return cleanCategory(g[1])
+  const h = s.match(/\bspent\s+(?:\d+(?:\.\d+)?)\s*(?:usd|dollar|dollars|dirham|dh|mad|aed)\s+on\s+([a-z \-]+)/i)
+  if (h) return cleanCategory(h[1])
+  const mapping = {
+    groceries: ['groceries','grocery','supermarket','market','food'],
+    salt: ['salt'],
+    taxi: ['taxi','uber','cab','ride','transport','bus','train'],
+    internet: ['internet','wifi','data','bundle','subscription'],
+    coffee: ['coffee','cafe'],
+    snacks: ['snack','snacks'],
+    rent: ['rent'],
+    fuel: ['fuel','petrol','gas'],
+    electricity: ['electricity','power'],
+    water: ['water'],
+    phone: ['phone','balance','airtime','credit'],
+    restaurant: ['restaurant','dinner','lunch','meal','breakfast']
+  }
+  const lower = s.toLowerCase()
+  for (const k of Object.keys(mapping)) {
+    for (const w of mapping[k]) {
+      const re = new RegExp(`\\b${w}\\b`, 'i')
+      if (re.test(lower)) return k
+    }
+  }
+  const tokens = lower.split(/\s+/).filter(t=>t && !/^\d+(\.\d+)?$/.test(t))
+  const stop = new Set(['today','yesterday','tomorrow','spent','dirham','dh','mad','aed','dollar','dollars','usd','on','for','using','buying','bought','purchase','purchasing','paid'])
+  const filtered = tokens.filter(t=>!stop.has(t))
+  if (filtered.length) return cleanCategory(filtered[filtered.length-1])
   return 'uncategorized'
 }
 function extractDate(s) {
@@ -55,7 +112,7 @@ function extractDate(s) {
   return todayISO()
 }
 function parseInput(text) {
-  const chunks = parseChunks(normalizeCurrency(text.toLowerCase()))
+  const chunks = parseChunks(normalizeText(text))
   const items = []
   for (const ch of chunks) {
     const amount = extractAmount(ch)
