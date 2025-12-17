@@ -2,7 +2,8 @@ const state = {
   expenses: [],
   planned: [],
   initialized: false,
-  editing: null
+  editing: null,
+  balance: 0
 }
 function money(v) {
   return `DH ${Number(v).toFixed(2)}`
@@ -155,6 +156,7 @@ function addExpenses(items) {
 function persist() {
   try { localStorage.setItem('depences_expenses', JSON.stringify(state.expenses)) } catch {}
   try { localStorage.setItem('depences_planned', JSON.stringify(state.planned)) } catch {}
+  try { localStorage.setItem('depences_balance', JSON.stringify(state.balance)) } catch {}
 }
 function load() {
   if (state.initialized) return
@@ -166,6 +168,10 @@ function load() {
   try {
     const raw2 = localStorage.getItem('depences_planned')
     if (raw2) state.planned = JSON.parse(raw2) || []
+  } catch {}
+  try {
+    const raw3 = localStorage.getItem('depences_balance')
+    if (raw3) state.balance = JSON.parse(raw3) || 0
   } catch {}
   renderTable()
 }
@@ -231,6 +237,12 @@ function renderTable() {
   })
   const grand = state.expenses.reduce((a,b)=>a+b.amount,0)
   document.getElementById('grand-total').textContent = money(grand)
+  const spentEl = document.getElementById('spent-display')
+  if (spentEl) spentEl.textContent = money(grand)
+  const balEl = document.getElementById('balance-display')
+  if (balEl) balEl.textContent = money(state.balance || 0)
+  const remEl = document.getElementById('remaining-display')
+  if (remEl) remEl.textContent = money((state.balance || 0) - grand)
   const totals = {}
   for (const e of state.expenses) {
     totals[e.category] = (totals[e.category]||0)+e.amount
@@ -311,6 +323,16 @@ function renderTable() {
   const pt = document.getElementById('planned-total')
   if (pt) pt.textContent = money(pgrand)
 }
+function extractBalance(text) {
+  const s = normalizeText(text)
+  const r1 = s.match(/\b(i\s+have|have|my\s+(?:money|balance|budget|cash|wallet)|balance|budget)\s+(?:is\s+|=|:)?\s*(?:about\s+|around\s+)?(\d+(?:\.\d+)?)\s*(?:usd|dollar|dollars|dirham|dh|mad|aed|درهم|د\.?م\.?)?\b/i)
+  if (r1) return parseFloat(r1[2])
+  const r2 = s.match(/\b(?:balance|budget|money)\s*(?:is\s+|=|:)?\s*(?:usd|dollar|dollars|dirham|dh|mad|aed|درهم|د\.?م\.?)\s*(\d+(?:\.\d+)?)\b/i)
+  if (r2) return parseFloat(r2[1])
+  const r3 = s.match(/\bset\s+(?:my\s+)?(?:balance|budget|money)\s+to\s+(\d+(?:\.\d+)?)\b/i)
+  if (r3) return parseFloat(r3[1])
+  return null
+}
 function startEdit(type, idx) {
   state.editing = {type, idx}
   renderTable()
@@ -370,9 +392,18 @@ function onSend() {
   const text = input.value.trim()
   if (!text) return
   pushMsg(text, 'user')
+  const bal = extractBalance(text)
   const items = parseInput(text)
   addExpenses(items)
-  pushMsg(replyFor(items), 'bot')
+  let msg = ''
+  if (bal != null) {
+    state.balance = bal
+    persist()
+    const spent = state.expenses.reduce((a,b)=>a+b.amount,0)
+    msg += `Balance set to ${money(state.balance)}. Remaining ${money(state.balance - spent)}. `
+  }
+  msg += replyFor(items)
+  pushMsg(msg, 'bot')
   input.value = ''
 }
 function onClear() {
@@ -394,6 +425,6 @@ function init() {
   document.getElementById('clear-btn').addEventListener('click', onClear)
   const cp = document.getElementById('clear-planned-btn')
   if (cp) cp.addEventListener('click', onClearPlanned)
-  pushMsg('Tell me about your spending, e.g., “Today I spent 20 dirham buying groceries, 10 dirham on taxi”. Use dates like “tomorrow” or “2025-12-31” for planned expenses.', 'bot')
+  pushMsg('Tell me about your spending, e.g., “Today I spent 20 dirham buying groceries, 10 dirham on taxi”. Set your balance by saying “I have 100 dirham” or “balance is 500”. Use dates like “tomorrow” or “2025-12-31” for planned expenses.', 'bot')
 }
 document.addEventListener('DOMContentLoaded', init)
