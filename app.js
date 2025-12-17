@@ -333,6 +333,28 @@ function extractBalance(text) {
   if (r3) return parseFloat(r3[1])
   return null
 }
+function extractBalanceDelta(text) {
+  const s = normalizeText(text)
+  const plus1 = s.match(/\badd\s+(?:to\s+)?(?:my\s+)?(?:balance|budget|money|cash|wallet)\s+(?:by\s+)?(\d+(?:\.\d+)?)\b/i)
+  if (plus1) return parseFloat(plus1[1])
+  const plus2 = s.match(/\badd\s+(\d+(?:\.\d+)?)\s+(?:to\s+)?(?:my\s+)?(?:balance|budget|money|cash|wallet)\b/i)
+  if (plus2) return parseFloat(plus2[1])
+  const plus3 = s.match(/\bincrease\s+(?:my\s+)?(?:balance|budget|money|cash|wallet)\s+(?:by\s+)?(\d+(?:\.\d+)?)\b/i)
+  if (plus3) return parseFloat(plus3[1])
+  const plus4 = s.match(/\btop\s*up\s+(?:my\s+)?(?:balance|budget|money|cash|wallet)?\s*(\d+(?:\.\d+)?)\b/i)
+  if (plus4) return parseFloat(plus4[1])
+  const plus5 = s.match(/\bdeposit\s+(\d+(?:\.\d+)?)\b/i)
+  if (plus5) return parseFloat(plus5[1])
+  const minus1 = s.match(/\bremove\s+(\d+(?:\.\d+)?)\s+from\s+(?:my\s+)?(?:balance|budget|money|cash|wallet)\b/i)
+  if (minus1) return -parseFloat(minus1[1])
+  const minus2 = s.match(/\bsubtract\s+(\d+(?:\.\d+)?)\s+from\s+(?:my\s+)?(?:balance|budget|money|cash|wallet)\b/i)
+  if (minus2) return -parseFloat(minus2[1])
+  const minus3 = s.match(/\bdecrease\s+(?:my\s+)?(?:balance|budget|money|cash|wallet)\s+(?:by\s+)?(\d+(?:\.\d+)?)\b/i)
+  if (minus3) return -parseFloat(minus3[1])
+  const minus4 = s.match(/\bwithdraw\s+(\d+(?:\.\d+)?)\b/i)
+  if (minus4) return -parseFloat(minus4[1])
+  return null
+}
 function startEdit(type, idx) {
   state.editing = {type, idx}
   renderTable()
@@ -393,6 +415,7 @@ function onSend() {
   if (!text) return
   pushMsg(text, 'user')
   const bal = extractBalance(text)
+  const delta = extractBalanceDelta(text)
   const items = parseInput(text)
   addExpenses(items)
   let msg = ''
@@ -401,6 +424,16 @@ function onSend() {
     persist()
     const spent = state.expenses.reduce((a,b)=>a+b.amount,0)
     msg += `Balance set to ${money(state.balance)}. Remaining ${money(state.balance - spent)}. `
+    renderTable()
+  }
+  if (delta != null) {
+    state.balance = (state.balance || 0) + delta
+    persist()
+    const spent = state.expenses.reduce((a,b)=>a+b.amount,0)
+    if (delta >= 0) msg += `Added ${money(delta)} to balance. `
+    else msg += `Removed ${money(Math.abs(delta))} from balance. `
+    msg += `Remaining ${money(state.balance - spent)}. `
+    renderTable()
   }
   msg += replyFor(items)
   pushMsg(msg, 'bot')
